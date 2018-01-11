@@ -1,5 +1,7 @@
-var Storage = artifacts.require("./Storage.sol");
+var Rentals = artifacts.require("./Rentals.sol");
 
-module.exports = function(deployer) {
-    deployer.deploy(Storage);
+module.exports = function(deployer, network, accounts) {
+
+    deployer.deploy(Rentals);
+
 };
