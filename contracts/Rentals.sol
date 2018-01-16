@@ -32,6 +32,7 @@ contract Rentals {
     }
 
     function register(uint price, bytes32 name) public {
+        require(price > 0);
         registered.push(Bike({
             price: price,
             owner: msg.sender,
@@ -39,20 +40,20 @@ contract Rentals {
         }));
     }
 
-    function rent(uint id, uint time) public returns (bool) {
+    // returns price paid. If request is wrong returns 0;
+    function rent(uint id, uint timeInHours) public returns (uint) {
         require(id + 1 >= registered.length);
         var bike = registered[id];
-        // todo consider time here
-        var totalPrice = bike.price;
-        // approx. enough money on sender
-        require( totalPrice < balances[msg.sender]);
+        var totalPrice = bike.price * timeInHours;
+        // approx. enough money on sender (case where returning late included)
+        require( totalPrice * 2 < balances[msg.sender]);
         // bike must be free for rental
         for (uint i = 0; i < rentals.length; i++) {
             if(rentals[i].bikeId == id) {
-                return false;
+                return 0;
             }
         }
-        var futureDeadline = now + time;
+        var futureDeadline = now + (timeInHours * 60);
         rentals.push(Rental({
             deadline: futureDeadline,
             bikeId: id,
@@ -60,10 +61,39 @@ contract Rentals {
         }));
         balances[msg.sender] -= totalPrice;
         balances[bike.owner] += totalPrice;
-        return true;
+        return totalPrice;
     }
 
+    function returnBike(uint bikeId) public {
+        // find the bike by id
+        Rental rental;
+        uint rentalIndex;
+        for (uint i = 0; i < rentals.length; i++) {
+            if(rentals[i].bikeId == bikeId) {
+                rental = rentals[i];
+                rentalIndex = i;
+                break;
+            }
+        }
+        require(rental.renter == msg.sender);
+        if ( now < rental.deadline) {
+            removeRental(rentalIndex);
+        } else {
+            // todo pay late fee
+            removeRental(rentalIndex);
+        }
 
+    }
+
+    function removeRental(uint index) returns (bool) {
+        if (index >= rentals.length) return false;
+        for (uint i = index; i<rentals.length-1; i++){
+            rentals[i] = rentals[i+1];
+        }
+        delete rentals[rentals.length-1];
+        rentals.length--;
+        return true;
+    }
 
     function priceForBike(uint id) public view returns (uint) {
         require(id + 1 >= registered.length);
