@@ -3,52 +3,58 @@ var Rentals = artifacts.require("Rentals");
 
 contract('Rentals', function(accounts) {
     var instance;
-    const firstUserMoney = 1000;
-    const secondUserMoney = 2000;
-    it("should give 1000 to second user", function() {
+    const firstUserMoney = 2000;
+    const secondUserMoney = 1000;
+    const bikePrice = 50;
+    const bikeName = "HellRide";
+    var generatedBikeId;
+    const firstUserAccount = web3.eth.accounts[0];
+    const secondUserAccount = web3.eth.accounts[1];
+    const hoursToRent = 5;
+
+    it("should give money to second user", function() {
         return Rentals.deployed().then(function(inst) {
             instance = inst;
-            return instance.giveMoney(1000,web3.eth.accounts[1])
+            return instance.giveMoney(secondUserMoney,secondUserAccount)
         }).then(function(result) {
-            return instance.checkBalance(web3.eth.accounts[1]);
+            return instance.checkBalance(secondUserAccount);
         }).then(function(result) {
-            assert.equal(result.valueOf(), 1000, "not 1000 after transfer")
+            assert.equal(result.valueOf(), secondUserMoney, "not correct amount after transfer")
         })
     });
-    it("should give 2000 to owner", function() {
-        return instance.giveMoney(2000,web3.eth.accounts[0])
+    it("should give money to fist user", function() {
+        return instance.giveMoney(firstUserMoney,firstUserAccount)
             .then(function(result) {
-                return instance.checkBalance(web3.eth.accounts[0]);
+                return instance.checkBalance(firstUserAccount);
         }).then(function(result) {
-            assert.equal(result.valueOf(), 2000, "not 2000 after transfer")
+            assert.equal(result.valueOf(), firstUserMoney, "not correct after transfer")
         })
     });
-    it("should register new bike (price 50) with second account", function() {
-        return instance.register(50,'HellRide', {from: web3.eth.accounts[1]})
+    it("should register new bike with second account", function() {
+        return instance.register(bikePrice, bikeName, {from: secondUserAccount})
             .then(function(result) {
-                return instance.priceForBike(0);
-        }).then(function(result) {
-            assert.equal(result.valueOf(), 50, "not price 50 after register")
+                assert.equal(result.logs[0].args._price.valueOf(), bikePrice, "not price 50 after register");
+                assert.equal(result.logs[0].args._owner.valueOf(), secondUserAccount, "not price 50 after register");
+                generatedBikeId = result.logs[0].args._bikeId;
         })
     });
     it("rent registered bike", function() {
-        return instance.rent(0, 5, {from: web3.eth.accounts[0]})
+        var priceForRental = bikePrice * hoursToRent;
+        return instance.rent(generatedBikeId, hoursToRent, {from: firstUserAccount})
             .then(function(result) {
-                return instance.checkBalance(web3.eth.accounts[0]);
+                return instance.checkBalance(firstUserAccount);
         }).then(function(result) {
-            assert.equal(result.valueOf(), 1750, "renter does not correspond!")
+            assert.equal(result.valueOf(), firstUserMoney - priceForRental, "renter does not correspond!")
         }).then(function(result) {
-                return instance.checkBalance(web3.eth.accounts[1]);
+                return instance.checkBalance(secondUserAccount);
         }).then(function(result) {
-            assert.equal(result.valueOf(), 1250, "renter does not correspond!")
+            assert.equal(result.valueOf(), secondUserMoney + priceForRental, "renter does not correspond!")
         })
     });
     it("return rented bike", function() {
-        return instance.returnBike(0, {from: web3.eth.accounts[0]})
+        return instance.returnBike(generatedBikeId, {from: firstUserAccount})
             .then(function(result) {
-                return instance.checkDeadline();
-        }).then(function(result) {
-                assert.equal(result.valueOf(), 0, "rental not removed!")
+                assert.equal(result.logs[0].args._additionalPrice.valueOf(), 0, "rental not removed!")
         })
     });
 
