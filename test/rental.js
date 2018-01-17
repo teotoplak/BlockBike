@@ -10,7 +10,7 @@ contract('Rentals', function(accounts) {
     var generatedBikeId;
     const firstUserAccount = web3.eth.accounts[0];
     const secondUserAccount = web3.eth.accounts[1];
-    const hoursToRent = 5;
+    const secondsToRent = 5;
 
     it("should give money to second user", function() {
         return Rentals.deployed().then(function(inst) {
@@ -39,9 +39,10 @@ contract('Rentals', function(accounts) {
         })
     });
     it("rent registered bike", function() {
-        var priceForRental = bikePrice * hoursToRent;
-        return instance.rent(generatedBikeId, hoursToRent, {from: firstUserAccount})
+        var priceForRental = bikePrice * secondsToRent;
+        return instance.rent(generatedBikeId, secondsToRent, {from: firstUserAccount})
             .then(function(result) {
+                // console.log(result.logs[0].args._deadline.valueOf());
                 return instance.checkBalance(firstUserAccount);
         }).then(function(result) {
             assert.equal(result.valueOf(), firstUserMoney - priceForRental, "renter does not correspond!")
@@ -51,11 +52,13 @@ contract('Rentals', function(accounts) {
             assert.equal(result.valueOf(), secondUserMoney + priceForRental, "renter does not correspond!")
         })
     });
-    it("return rented bike", function() {
+    it("return rented bike", function () {
         return instance.returnBike(generatedBikeId, {from: firstUserAccount})
-            .then(function(result) {
+            .then(function (result) {
+                // console.log(result.logs[0].args._time.valueOf());
+                // console.log(result.logs[0].args._additionalPrice.valueOf());
                 assert.equal(result.logs[0].args._additionalPrice.valueOf(), 0, "rental not removed!")
-        })
+            })
     });
 
 });

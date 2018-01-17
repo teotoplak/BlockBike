@@ -21,12 +21,11 @@ contract Rentals {
 
     Bike[] public registered;
     Rental[] public rentals;
-    // todo implement this good
     uint public latestBikeId = 0;
 
-    event Registered(address indexed _owner, uint indexed _bikeId, uint _price);
-    event Returned(uint indexed _bikeId, uint indexed _time, uint _additionalPrice);
-    event Rented(uint indexed _bikeId, address indexed _renter, uint _deadline, uint _price);
+    event LogRegister(address indexed _owner, uint indexed _bikeId, uint _price);
+    event LogReturn(uint indexed _bikeId, uint indexed _time, uint _additionalPrice);
+    event LogRent(uint indexed _bikeId, address indexed _renter, uint _deadline, uint _price);
 
 
     function Rentals() public {
@@ -47,12 +46,12 @@ contract Rentals {
             name: name,
             bikeId: latestBikeId
         }));
-        Registered(msg.sender,latestBikeId,price);
+        LogRegister(msg.sender,latestBikeId,price);
         latestBikeId++;
     }
 
-    function rent(uint id, uint timeInHours) public returns (bool) {
-        // user can have only one bike rented at time
+    function rent(uint id, uint timeInSeconds) public returns (bool) {
+        // user can have only one bike LogRent at time
         require(checkDeadline() == 0);
         // cause of error "Assignment necessary for type detection."
         var bike = registered[0];
@@ -65,7 +64,7 @@ contract Rentals {
             }
         }
         require(found == true);
-        var totalPrice = bike.price * timeInHours;
+        var totalPrice = bike.price * timeInSeconds;
         // approx. enough money on sender (case where returning late included)
         require( totalPrice * 2 < balances[msg.sender]);
         // bike must be free for rental
@@ -75,7 +74,7 @@ contract Rentals {
                 return false;
             }
         }
-        var futureDeadline = now + (timeInHours * 60);
+        var futureDeadline = now + timeInSeconds;
         rentals.push(Rental({
             deadline: futureDeadline,
             bikeId: id,
@@ -83,7 +82,7 @@ contract Rentals {
         }));
         balances[msg.sender] -= totalPrice;
         balances[bike.owner] += totalPrice;
-        Rented(id,msg.sender,futureDeadline,totalPrice);
+        LogRent(id,msg.sender,futureDeadline,totalPrice);
         return true;
     }
 
@@ -106,14 +105,24 @@ contract Rentals {
         var returningTime = now;
         if ( returningTime < rental.deadline) {
             removeRental(rentalIndex);
-            Returned(bikeId, returningTime, 0);
+            LogReturn(bikeId, returningTime, 0);
         } else {
-            // todo pay late fee
+            // find bike
+            var bike = registered[0];
+            for(i = 0; i < registered.length; i++) {
+                if(registered[i].bikeId == bikeId) {
+                    bike = registered[i];
+                    break;
+                }
+            }
+            var secondsLate = (returningTime - rental.deadline);
+            var additionalPrice = secondsLate * bike.price * 2;
+            balances[msg.sender] -= additionalPrice;
+            balances[bike.owner] += additionalPrice;
             removeRental(rentalIndex);
-            Returned(bikeId, returningTime, 0);
+            LogReturn(bikeId, returningTime, secondsLate);
         }
         return true;
-
     }
 
     function removeRental(uint index) private returns (bool) {
