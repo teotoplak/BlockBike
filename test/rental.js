@@ -3,6 +3,8 @@ var Rentals = artifacts.require("Rentals");
 
 contract('Rentals', function(accounts) {
     var instance;
+    const firstUserMoney = 1000;
+    const secondUserMoney = 2000;
     it("should give 1000 to second user", function() {
         return Rentals.deployed().then(function(inst) {
             instance = inst;
@@ -39,6 +41,14 @@ contract('Rentals', function(accounts) {
                 return instance.checkBalance(web3.eth.accounts[1]);
         }).then(function(result) {
             assert.equal(result.valueOf(), 1250, "renter does not correspond!")
+        })
+    });
+    it("return rented bike", function() {
+        return instance.returnBike(0, {from: web3.eth.accounts[0]})
+            .then(function(result) {
+                return instance.checkDeadline();
+        }).then(function(result) {
+                assert.equal(result.valueOf(), 0, "rental not removed!")
         })
     });
 

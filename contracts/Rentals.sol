@@ -16,11 +16,11 @@ contract Rentals {
 
     mapping (address => uint) balances;
 
-
     address owner;
 
     Bike[] public registered;
     Rental[] public rentals;
+
 
     function Rentals() public {
         owner = msg.sender;
@@ -31,18 +31,22 @@ contract Rentals {
         balances[receiver] += amount;
     }
 
-    function register(uint price, bytes32 name) public {
+    // return id of new bike
+    function register(uint price, bytes32 name) public returns (uint) {
         require(price > 0);
         registered.push(Bike({
             price: price,
             owner: msg.sender,
             name: name
         }));
+        registered.length - 1;
     }
 
     // returns price paid. If request is wrong returns 0;
     function rent(uint id, uint timeInHours) public returns (uint) {
-        require(id + 1 >= registered.length);
+        require(id + 1 <= registered.length);
+        // user can have only one bike rented at time
+        require(checkDeadline() == 0);
         var bike = registered[id];
         var totalPrice = bike.price * timeInHours;
         // approx. enough money on sender (case where returning late included)
@@ -64,17 +68,21 @@ contract Rentals {
         return totalPrice;
     }
 
-    function returnBike(uint bikeId) public {
+    // returns false if there was no bike to return
+    function returnBike(uint bikeId) public returns (bool) {
         // find the bike by id
         Rental rental;
         uint rentalIndex;
+        bool found = false;
         for (uint i = 0; i < rentals.length; i++) {
             if(rentals[i].bikeId == bikeId) {
                 rental = rentals[i];
                 rentalIndex = i;
+                found = true;
                 break;
             }
         }
+        if(found == false) return false;
         require(rental.renter == msg.sender);
         if ( now < rental.deadline) {
             removeRental(rentalIndex);
@@ -82,10 +90,11 @@ contract Rentals {
             // todo pay late fee
             removeRental(rentalIndex);
         }
+        return true;
 
     }
 
-    function removeRental(uint index) returns (bool) {
+    function removeRental(uint index) private returns (bool) {
         if (index >= rentals.length) return false;
         for (uint i = index; i<rentals.length-1; i++){
             rentals[i] = rentals[i+1];
@@ -104,4 +113,13 @@ contract Rentals {
         return balances[addr];
     }
 
+    // returns deadline for calling user rental. if there is none like it returns 0
+    function checkDeadline() public view returns (uint) {
+        for(uint i = 0; i < rentals.length; i++) {
+            if(rentals[i].renter == msg.sender) {
+                return rentals[i].deadline;
+            }
+        }
+        return 0;
+    }
 }
