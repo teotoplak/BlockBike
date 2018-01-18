@@ -1,13 +1,13 @@
 // Specifically request an abstraction for MetaCoin
-var Rentals = artifacts.require("Rentals");
+let Rentals = artifacts.require("Rentals");
 
 contract('Rentals', function(accounts) {
-    var instance;
-    const firstUserMoney = 2000;
-    const secondUserMoney = 1000;
+    let instance;
+    const firstUserMoney = 20000;
+    const secondUserMoney = 10000;
     const bikePrice = 50;
     const bikeName = "HellRide";
-    var generatedBikeId;
+    let generatedBikeId;
     const firstUserAccount = web3.eth.accounts[0];
     const secondUserAccount = web3.eth.accounts[1];
     const secondsToRent = 5;
@@ -39,7 +39,7 @@ contract('Rentals', function(accounts) {
         })
     });
     it("rent registered bike", function() {
-        var priceForRental = bikePrice * secondsToRent;
+        let priceForRental = bikePrice * secondsToRent;
         return instance.rent(generatedBikeId, secondsToRent, {from: firstUserAccount})
             .then(function(result) {
                 // console.log(result.logs[0].args._deadline.valueOf());

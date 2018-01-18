@@ -116,11 +116,12 @@ contract Rentals {
                 }
             }
             var secondsLate = (returningTime - rental.deadline);
+            // if late double the rental fee per hour
             var additionalPrice = secondsLate * bike.price * 2;
             balances[msg.sender] -= additionalPrice;
             balances[bike.owner] += additionalPrice;
             removeRental(rentalIndex);
-            LogReturn(bikeId, returningTime, secondsLate);
+            LogReturn(bikeId, returningTime, additionalPrice);
         }
         return true;
     }
